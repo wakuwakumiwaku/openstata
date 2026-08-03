@@ -1,0 +1,27 @@
+name: Feature request
+about: Propose a clinical-statistics workflow or command
+labels: enhancement
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Clinical or analytical use case
+      description: What workflow should become easier or more reproducible?
+    validations:
+      required: true
+  - type: textarea
+    id: syntax
+    attributes:
+      label: Proposed Python API or command syntax
+  - type: textarea
+    id: methods
+    attributes:
+      label: Statistical definition and references
+      description: Describe estimators, assumptions, missing-data behavior, and expected output.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Data privacy
+      options:
+        - label: This request contains no patient-identifiable or restricted data.
+          required: true

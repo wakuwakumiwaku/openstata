@@ -1,0 +1,31 @@
+name: Bug report
+about: Report incorrect output or behavior
+labels: bug
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Minimal reproducible example
+      description: Use synthetic or de-identified data only.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OpenStata, Python, pandas, NumPy, SciPy, and operating-system versions.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Data privacy
+      options:
+        - label: This report contains no patient-identifiable or restricted data.
+          required: true
