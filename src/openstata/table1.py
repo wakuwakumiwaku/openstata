@@ -264,4 +264,8 @@ def table1(
         ordered_columns.append("SMD")
     result = result.reindex(columns=ordered_columns, fill_value="")
     result.index = pd.MultiIndex.from_tuples(index, names=["Variable", "Level"])
+    result.attrs["openstata_group_sizes"] = {
+        group_name: len(group) for group_name, group in group_frames
+    }
+    result.attrs["openstata_group_variable"] = by
     return result

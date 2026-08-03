@@ -9,6 +9,7 @@ OpenStata is a Python library for familiar, reproducible clinical-statistics wor
 - `summarize`: observations, missing values, mean, standard deviation, range, detailed percentiles, variance, skewness, and kurtosis
 - `tabulate`: one-way and two-way frequency tables with missing-value and percentage modes
 - `table1`: grouped baseline characteristics tables for clinical studies
+- Professional Table 1 export to standalone HTML, formatted Excel, and editable Word
 - CSV, TSV, Stata `.dta`, and Parquet input and output
 - Functional Python API, `OpenStata` wrapper, Stata-like command strings, and command-line interface
 - Automated tests on Python 3.10, 3.11, and 3.12
@@ -35,6 +36,13 @@ Parquet support uses an optional engine:
 
 ```bash
 python -m pip install -e ".[parquet]"
+```
+
+Formatted Excel and Word export use optional dependencies. Standalone HTML export
+works with the core installation.
+
+```bash
+python -m pip install -e ".[export]"
 ```
 
 ## Quick start
@@ -117,6 +125,51 @@ The initial implementation uses:
 
 P-values and standardized differences are optional. Missingness is displayed explicitly when requested. Group rows with missing values in the grouping variable are excluded from the analysis population.
 
+## Professional export
+
+Export the DataFrame returned by `table1()`:
+
+```python
+from openstata import export_table1
+
+export_table1(
+    result,
+    "participant_characteristics.html",
+    title="Table 1. Participant characteristics",
+    subtitle="Randomized analysis population",
+    style="clinical",
+)
+```
+
+Or build and export in one call:
+
+```python
+stata.export_table1(
+    "participant_characteristics.docx",
+    ["age", "bmi", "crp", "sex", "smoking"],
+    by="treatment",
+    categorical=["sex", "smoking"],
+    nonnormal=["crp"],
+    pvalues=True,
+    standardized_differences=True,
+    title="Table 1. Participant characteristics",
+    style="journal",
+)
+```
+
+Supported formats and behavior:
+
+| Extension | Output |
+|---|---|
+| `.html` | Standalone responsive table with embedded CSS and print styling |
+| `.xlsx` | Formatted Excel workbook with frozen headers, merged variable groups, notes, and print setup |
+| `.docx` | Editable landscape Word table with grouped variables, styled headers, and notes |
+
+Three themes are available: `clinical`, `journal`, and `minimal`. Exported group
+headings include analysis-population sample sizes automatically. Existing files are
+protected unless `overwrite=True` is supplied. HTML can be printed to PDF from any
+modern browser without adding a heavyweight PDF dependency.
+
 ## Reading Stata data
 
 ```python
@@ -133,7 +186,13 @@ OpenStata uses pandas for `.dta` compatibility. Stata value labels are therefore
 ```bash
 openstata trial.dta "summarize age bmi, detail"
 openstata trial.csv "table1 age bmi sex, by(arm) categorical(sex) pvalues smd" --format csv
+openstata trial.dta "table1 age bmi sex, by(arm) categorical(sex) pvalues smd" \
+  --output table1.html --title "Table 1. Participant characteristics" --style clinical
+openstata trial.dta "baseline age bmi sex, by(arm) categorical(sex) pvalues smd" \
+  --output table1.docx --style journal
 ```
+
+Use `--subtitle`, repeatable `--footnote`, and `--overwrite` to customize export.
 
 ## Design principles
 
@@ -152,7 +211,7 @@ Near-term candidates include:
 - Kaplan-Meier summaries and Cox proportional hazards models
 - stratified and paired analyses
 - variable labels and richer `.dta` metadata preservation
-- publication export to HTML, LaTeX, Excel, and Word
+- LaTeX export and journal-specific table templates
 - Stata-like `if` and `in` observation filters
 - validation examples against documented Stata output
 

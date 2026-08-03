@@ -5,10 +5,14 @@ from __future__ import annotations
 import re
 import shlex
 from collections.abc import Sequence
+from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
 from openstata.core import summarize, tabulate
+from openstata.export import ExportStyle
+from openstata.export import export_table1 as write_table1
 from openstata.table1 import table1
 
 _OPTION_PATTERN = re.compile(r"([A-Za-z_]\w*)(?:\(([^)]*)\))?")
@@ -72,6 +76,31 @@ class StataFrame:
 
     def table1(self, variables: Sequence[str] | None = None, **kwargs: object) -> pd.DataFrame:
         return table1(self.data, variables, **kwargs)  # type: ignore[arg-type]
+
+    def export_table1(
+        self,
+        destination: str | Path,
+        variables: Sequence[str] | None = None,
+        *,
+        title: str = "Table 1. Baseline characteristics",
+        subtitle: str | None = None,
+        footnotes: Sequence[str] | None = None,
+        style: ExportStyle = "clinical",
+        overwrite: bool = False,
+        **table_options: Any,
+    ) -> Path:
+        """Build and export a professional baseline table in one step."""
+
+        result = table1(self.data, variables, **table_options)
+        return write_table1(
+            result,
+            destination,
+            title=title,
+            subtitle=subtitle,
+            footnotes=footnotes,
+            style=style,
+            overwrite=overwrite,
+        )
 
     def run(self, command: str) -> pd.DataFrame:
         """Run ``summarize``, ``tabulate``, or ``table1`` command syntax."""

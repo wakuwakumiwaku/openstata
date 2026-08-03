@@ -33,6 +33,11 @@ def test_table1_builds_grouped_clinical_summary() -> None:
     assert result.loc[("female", "1"), "Overall"] == "4 (66.7%)"
     assert result.loc[("age", "Mean (SD)"), "P-value"]
     assert result.loc[("age", "Mean (SD)"), "SMD"] == "4.00"
+    assert result.attrs["openstata_group_sizes"] == {
+        "Overall": 6,
+        "arm=Control": 3,
+        "arm=Treatment": 3,
+    }
 
 
 def test_table1_automatically_treats_text_as_categorical() -> None:
