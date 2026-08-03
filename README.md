@@ -4,6 +4,14 @@ OpenStata is a Python library for familiar, reproducible clinical-statistics wor
 
 > Project status: early alpha. The current release is a tested foundation for descriptive analysis, not a complete Stata replacement.
 
+## Example output
+
+A publication-ready Table 1 exported by OpenStata from a synthetic demonstration cohort:
+
+![OpenStata clinical baseline Table 1 sample](docs/assets/openstata-table1-sample.png)
+
+The same table can be exported as standalone HTML, formatted Excel, or editable Word.
+
 ## What works now
 
 - `summarize`: observations, missing values, mean, standard deviation, range, detailed percentiles, variance, skewness, and kurtosis
