@@ -41,6 +41,21 @@ def test_ci_mean_wrapper_method(stata: OpenStata) -> None:
     assert result.attrs["confidence_level"] == 99.0
 
 
+def test_run_ci_proportions_command(stata: OpenStata) -> None:
+    result = stata.run("ci proportions female, wilson level(90)")
+
+    assert result.loc["female", "Obs"] == 4
+    assert result.loc["female", "Proportion"] == pytest.approx(0.75)
+    assert result.attrs == {"confidence_level": 90.0, "method": "wilson"}
+
+
+def test_ci_proportion_wrapper_method(stata: OpenStata) -> None:
+    result = stata.ci_proportion(["female"], method="jeffreys")
+
+    assert result.loc["female", "Proportion"] == pytest.approx(0.75)
+    assert result.attrs["method"] == "jeffreys"
+
+
 def test_run_tabulate_command(stata: OpenStata) -> None:
     result = stata.run("tabulate arm female, row")
 
@@ -64,6 +79,8 @@ def test_run_rejects_unknown_commands_and_options(stata: OpenStata) -> None:
     with pytest.raises(ValueError, match="Unknown options"):
         stata.run("summarize age, typo")
     with pytest.raises(ValueError, match="ci subcommand"):
-        stata.run("ci proportions female")
+        stata.run("ci variances age")
     with pytest.raises(ValueError, match="level"):
         stata.run("ci means age, level(ninety)")
+    with pytest.raises(ValueError, match="only one"):
+        stata.run("ci proportions female, exact wilson")

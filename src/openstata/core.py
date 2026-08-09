@@ -7,10 +7,12 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
+from pandas.api.types import is_bool_dtype, is_numeric_dtype
 from scipy import stats
 
 PercentMode = Literal["count", "row", "column", "cell"]
+ProportionMethod = Literal["exact", "wald", "wilson", "agresti", "jeffreys"]
+_PROPORTION_METHODS = {"exact", "wald", "wilson", "agresti", "jeffreys"}
 
 
 def _check_columns(data: pd.DataFrame, variables: Sequence[str]) -> list[str]:
@@ -34,6 +36,20 @@ def _numeric_variables(
     if not columns:
         raise ValueError("No numeric variables were selected")
     return columns
+
+
+def _confidence_level(level: float) -> float:
+    try:
+        confidence_level = float(level)
+    except (TypeError, ValueError) as error:
+        raise ValueError("level must be a number between 0 and 100") from error
+    if not np.isfinite(confidence_level) or not 0 < confidence_level < 100:
+        raise ValueError("level must be a number between 0 and 100")
+    return confidence_level
+
+
+def _finite_numeric(series: pd.Series) -> pd.Series:
+    return pd.to_numeric(series, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
 
 
 def summarize(
@@ -104,20 +120,13 @@ def ci_mean(
     option.
     """
 
-    try:
-        confidence_level = float(level)
-    except (TypeError, ValueError) as error:
-        raise ValueError("level must be a number between 0 and 100") from error
-    if not np.isfinite(confidence_level) or not 0 < confidence_level < 100:
-        raise ValueError("level must be a number between 0 and 100")
-
+    confidence_level = _confidence_level(level)
     columns = _numeric_variables(data, variables)
     records: list[dict[str, float | int | str]] = []
     probability = 0.5 + confidence_level / 200
 
     for column in columns:
-        values = pd.to_numeric(data[column], errors="coerce")
-        values = values.replace([np.inf, -np.inf], np.nan).dropna()
+        values = _finite_numeric(data[column])
         observations = int(values.size)
         mean = float(values.mean()) if observations else np.nan
         standard_error = np.nan
@@ -144,6 +153,138 @@ def ci_mean(
 
     result = pd.DataFrame.from_records(records).set_index("Variable")
     result.attrs["confidence_level"] = confidence_level
+    return result
+
+
+def ci_proportion(
+    data: pd.DataFrame,
+    variables: Sequence[str] | None = None,
+    *,
+    level: float = 95.0,
+    method: ProportionMethod = "exact",
+) -> pd.DataFrame:
+    """Estimate binary proportions and binomial confidence intervals.
+
+    Variables must contain only 0 and 1 after missing and non-finite values are
+    excluded. If ``variables`` is omitted, all binary numeric and Boolean columns
+    are selected. ``method`` may be ``exact`` (Clopper-Pearson), ``wald``,
+    ``wilson``, ``agresti`` (Agresti-Coull), or ``jeffreys``.
+    """
+
+    confidence_level = _confidence_level(level)
+    if method not in _PROPORTION_METHODS:
+        choices = ", ".join(sorted(_PROPORTION_METHODS))
+        raise ValueError(f"method must be one of: {choices}")
+
+    if variables is None:
+        columns = []
+        for column in data.columns:
+            series = data[column]
+            if not (is_numeric_dtype(series) or is_bool_dtype(series)):
+                continue
+            observed = _finite_numeric(series)
+            if not observed.empty and observed.isin([0, 1]).all():
+                columns.append(column)
+        if not columns:
+            raise ValueError("No binary 0/1 variables were found")
+    else:
+        columns = _check_columns(data, variables)
+        nonnumeric = [
+            column
+            for column in columns
+            if not (is_numeric_dtype(data[column]) or is_bool_dtype(data[column]))
+        ]
+        if nonnumeric:
+            raise TypeError(
+                "ci_proportion requires numeric or Boolean columns: " + ", ".join(nonnumeric)
+            )
+        nonbinary = [
+            column
+            for column in columns
+            if not _finite_numeric(data[column]).isin([0, 1]).all()
+        ]
+        if nonbinary:
+            raise ValueError(
+                "ci_proportion requires values coded as 0 and 1: " + ", ".join(nonbinary)
+            )
+        if not columns:
+            raise ValueError("No variables were selected")
+
+    alpha = 1 - confidence_level / 100
+    critical_value = float(stats.norm.ppf(1 - alpha / 2))
+    records: list[dict[str, float | int | str]] = []
+
+    for column in columns:
+        values = _finite_numeric(data[column])
+        observations = int(values.size)
+        successes = int(values.sum()) if observations else 0
+        proportion = successes / observations if observations else np.nan
+        standard_error = (
+            float(np.sqrt(proportion * (1 - proportion) / observations))
+            if observations
+            else np.nan
+        )
+        lower = np.nan
+        upper = np.nan
+
+        if observations:
+            failures = observations - successes
+            if method == "exact":
+                lower = (
+                    float(stats.beta.ppf(alpha / 2, successes, failures + 1))
+                    if successes
+                    else 0.0
+                )
+                upper = (
+                    float(stats.beta.ppf(1 - alpha / 2, successes + 1, failures))
+                    if failures
+                    else 1.0
+                )
+            elif method == "wald":
+                margin = critical_value * standard_error
+                lower = proportion - margin
+                upper = proportion + margin
+            elif method == "wilson":
+                denominator = 1 + critical_value**2 / observations
+                center = (
+                    proportion + critical_value**2 / (2 * observations)
+                ) / denominator
+                margin = (
+                    critical_value
+                    * np.sqrt(
+                        proportion * (1 - proportion) / observations
+                        + critical_value**2 / (4 * observations**2)
+                    )
+                    / denominator
+                )
+                lower = center - margin
+                upper = center + margin
+            elif method == "agresti":
+                adjusted_n = observations + critical_value**2
+                adjusted_p = (successes + critical_value**2 / 2) / adjusted_n
+                margin = critical_value * np.sqrt(adjusted_p * (1 - adjusted_p) / adjusted_n)
+                lower = adjusted_p - margin
+                upper = adjusted_p + margin
+            else:
+                lower = float(stats.beta.ppf(alpha / 2, successes + 0.5, failures + 0.5))
+                upper = float(
+                    stats.beta.ppf(1 - alpha / 2, successes + 0.5, failures + 0.5)
+                )
+
+        records.append(
+            {
+                "Variable": column,
+                "Obs": observations,
+                "Proportion": proportion,
+                "Std. err.": standard_error,
+                "CI lower": lower,
+                "CI upper": upper,
+            }
+        )
+
+    result = pd.DataFrame.from_records(records).set_index("Variable")
+    result.attrs["confidence_level"] = confidence_level
+    result.attrs["method"] = method
     return result
 
 

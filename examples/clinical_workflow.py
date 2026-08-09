@@ -16,6 +16,7 @@ patients = pd.DataFrame(
 stata = OpenStata(patients)
 print(stata.run("summarize age crp, detail"))
 print(stata.run("ci means age crp, level(95)"))
+print(stata.run("ci proportions female, wilson"))
 print(stata.run("tabulate arm female, row"))
 print(
     table1(

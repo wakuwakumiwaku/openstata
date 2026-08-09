@@ -43,6 +43,21 @@ def test_cli_runs_ci_means_command(tmp_path: Path, capsys: object) -> None:
     assert '"CI upper"' in captured.out
 
 
+def test_cli_runs_ci_proportions_command(tmp_path: Path, capsys: object) -> None:
+    source = tmp_path / "patients.csv"
+    pd.DataFrame({"female": [1, 0, 1, 1]}).to_csv(source, index=False)
+
+    exit_code = main(
+        [str(source), "ci proportions female, wilson level(90)", "--format", "json"]
+    )
+
+    assert exit_code == 0
+    captured = capsys.readouterr()  # type: ignore[attr-defined]
+    assert '"Proportion": 0.75' in captured.out
+    assert '"CI lower"' in captured.out
+    assert '"CI upper"' in captured.out
+
+
 def test_cli_exports_a_styled_baseline_table(tmp_path: Path, capsys: object) -> None:
     source = tmp_path / "patients.csv"
     destination = tmp_path / "baseline.html"

@@ -6,11 +6,11 @@ import re
 import shlex
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
-from openstata.core import ci_mean, summarize, tabulate
+from openstata.core import ProportionMethod, ci_mean, ci_proportion, summarize, tabulate
 from openstata.export import ExportStyle
 from openstata.export import export_table1 as write_table1
 from openstata.table1 import table1
@@ -66,6 +66,15 @@ class StataFrame:
     ) -> pd.DataFrame:
         return ci_mean(self.data, variables, level=level)
 
+    def ci_proportion(
+        self,
+        variables: Sequence[str] | None = None,
+        *,
+        level: float = 95.0,
+        method: ProportionMethod = "exact",
+    ) -> pd.DataFrame:
+        return ci_proportion(self.data, variables, level=level, method=method)
+
     def tabulate(
         self,
         row: str,
@@ -111,7 +120,7 @@ class StataFrame:
         )
 
     def run(self, command: str) -> pd.DataFrame:
-        """Run ``summarize``, ``ci means``, ``tabulate``, or ``table1`` syntax."""
+        """Run supported descriptive, confidence-interval, and table commands."""
 
         body, separator, option_text = command.partition(",")
         tokens = shlex.split(body)
@@ -122,9 +131,9 @@ class StataFrame:
         options = _parse_options(option_text) if separator else {}
 
         if name == "ci":
-            _reject_unknown(options, {"level"})
-            if not variables or variables[0].lower() not in {"mean", "means"}:
-                raise ValueError("ci subcommand must be mean or means")
+            if not variables:
+                raise ValueError("ci requires a subcommand")
+            subcommand = variables[0].lower()
             raw_level = options.get("level", "95")
             if raw_level is None:
                 raise ValueError("level() requires a numeric confidence percentage")
@@ -132,7 +141,26 @@ class StataFrame:
                 level = float(raw_level)
             except ValueError as error:
                 raise ValueError("level() requires a numeric confidence percentage") from error
-            return ci_mean(self.data, variables[1:] or None, level=level)
+
+            if subcommand in {"mean", "means"}:
+                _reject_unknown(options, {"level"})
+                return ci_mean(self.data, variables[1:] or None, level=level)
+
+            if subcommand in {"prop", "proportion", "proportions"}:
+                method_names = ("exact", "wald", "wilson", "agresti", "jeffreys")
+                _reject_unknown(options, {"level", *method_names})
+                methods = [method for method in method_names if method in options]
+                if len(methods) > 1:
+                    raise ValueError("Choose only one proportion interval method")
+                method = cast(ProportionMethod, methods[0] if methods else "exact")
+                return ci_proportion(
+                    self.data,
+                    variables[1:] or None,
+                    level=level,
+                    method=method,
+                )
+
+            raise ValueError("ci subcommand must be means or proportions")
 
         if name in {"summarize", "sum"}:
             _reject_unknown(options, {"detail"})

@@ -20,7 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("data", help="Input CSV, TSV, DTA, or Parquet dataset")
     parser.add_argument(
         "command",
-        help='Command, for example: "summarize age bmi, detail" or "ci means age bmi"',
+        help='Command, for example: "summarize age bmi, detail" or "ci proportions female"',
     )
     parser.add_argument(
         "--format",
