@@ -8,6 +8,7 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
+from scipy import stats
 
 PercentMode = Literal["count", "row", "column", "cell"]
 
@@ -87,6 +88,63 @@ def summarize(
         records.append(record)
 
     return pd.DataFrame.from_records(records).set_index("Variable")
+
+
+def ci_mean(
+    data: pd.DataFrame,
+    variables: Sequence[str] | None = None,
+    *,
+    level: float = 95.0,
+) -> pd.DataFrame:
+    """Estimate means and Student's t confidence intervals.
+
+    Missing and non-finite values are excluded independently for each variable.
+    Intervals and standard errors are undefined when fewer than two observations
+    remain. ``level`` is expressed as a percentage to match Stata's ``level()``
+    option.
+    """
+
+    try:
+        confidence_level = float(level)
+    except (TypeError, ValueError) as error:
+        raise ValueError("level must be a number between 0 and 100") from error
+    if not np.isfinite(confidence_level) or not 0 < confidence_level < 100:
+        raise ValueError("level must be a number between 0 and 100")
+
+    columns = _numeric_variables(data, variables)
+    records: list[dict[str, float | int | str]] = []
+    probability = 0.5 + confidence_level / 200
+
+    for column in columns:
+        values = pd.to_numeric(data[column], errors="coerce")
+        values = values.replace([np.inf, -np.inf], np.nan).dropna()
+        observations = int(values.size)
+        mean = float(values.mean()) if observations else np.nan
+        standard_error = np.nan
+        lower = np.nan
+        upper = np.nan
+
+        if observations > 1:
+            standard_error = float(values.std(ddof=1) / np.sqrt(observations))
+            critical_value = float(stats.t.ppf(probability, df=observations - 1))
+            margin = critical_value * standard_error
+            lower = mean - margin
+            upper = mean + margin
+
+        records.append(
+            {
+                "Variable": column,
+                "Obs": observations,
+                "Mean": mean,
+                "Std. err.": standard_error,
+                "CI lower": lower,
+                "CI upper": upper,
+            }
+        )
+
+    result = pd.DataFrame.from_records(records).set_index("Variable")
+    result.attrs["confidence_level"] = confidence_level
+    return result
 
 
 def _with_missing(series: pd.Series, include_missing: bool) -> pd.Series:

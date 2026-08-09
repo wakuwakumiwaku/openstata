@@ -18,7 +18,10 @@ def build_parser() -> argparse.ArgumentParser:
         description="Run Stata-style clinical statistics and export professional Table 1 files.",
     )
     parser.add_argument("data", help="Input CSV, TSV, DTA, or Parquet dataset")
-    parser.add_argument("command", help='Command, for example: "summarize age bmi, detail"')
+    parser.add_argument(
+        "command",
+        help='Command, for example: "summarize age bmi, detail" or "ci means age bmi"',
+    )
     parser.add_argument(
         "--format",
         choices=("table", "csv", "json"),

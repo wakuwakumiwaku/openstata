@@ -10,7 +10,7 @@ from typing import Any
 
 import pandas as pd
 
-from openstata.core import summarize, tabulate
+from openstata.core import ci_mean, summarize, tabulate
 from openstata.export import ExportStyle
 from openstata.export import export_table1 as write_table1
 from openstata.table1 import table1
@@ -58,6 +58,14 @@ class StataFrame:
     ) -> pd.DataFrame:
         return summarize(self.data, variables, detail=detail)
 
+    def ci_mean(
+        self,
+        variables: Sequence[str] | None = None,
+        *,
+        level: float = 95.0,
+    ) -> pd.DataFrame:
+        return ci_mean(self.data, variables, level=level)
+
     def tabulate(
         self,
         row: str,
@@ -103,7 +111,7 @@ class StataFrame:
         )
 
     def run(self, command: str) -> pd.DataFrame:
-        """Run ``summarize``, ``tabulate``, or ``table1`` command syntax."""
+        """Run ``summarize``, ``ci means``, ``tabulate``, or ``table1`` syntax."""
 
         body, separator, option_text = command.partition(",")
         tokens = shlex.split(body)
@@ -112,6 +120,19 @@ class StataFrame:
         name = tokens[0].lower()
         variables = tokens[1:]
         options = _parse_options(option_text) if separator else {}
+
+        if name == "ci":
+            _reject_unknown(options, {"level"})
+            if not variables or variables[0].lower() not in {"mean", "means"}:
+                raise ValueError("ci subcommand must be mean or means")
+            raw_level = options.get("level", "95")
+            if raw_level is None:
+                raise ValueError("level() requires a numeric confidence percentage")
+            try:
+                level = float(raw_level)
+            except ValueError as error:
+                raise ValueError("level() requires a numeric confidence percentage") from error
+            return ci_mean(self.data, variables[1:] or None, level=level)
 
         if name in {"summarize", "sum"}:
             _reject_unknown(options, {"detail"})

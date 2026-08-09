@@ -15,6 +15,7 @@ The same table can be exported as standalone HTML, formatted Excel, or editable 
 ## What works now
 
 - `summarize`: observations, missing values, mean, standard deviation, range, detailed percentiles, variance, skewness, and kurtosis
+- `ci mean`: Student's t confidence intervals for one or more means
 - `tabulate`: one-way and two-way frequency tables with missing-value and percentage modes
 - `table1`: grouped baseline characteristics tables for clinical studies
 - Professional Table 1 export to standalone HTML, formatted Excel, and editable Word
@@ -58,7 +59,7 @@ python -m pip install -e ".[export]"
 ```python
 import pandas as pd
 
-from openstata import OpenStata, table1
+from openstata import OpenStata, ci_mean, table1
 
 patients = pd.DataFrame(
     {
@@ -72,6 +73,7 @@ patients = pd.DataFrame(
 stata = OpenStata(patients)
 
 print(stata.run("summarize age crp, detail"))
+print(ci_mean(patients, ["age", "crp"], level=95))
 print(stata.run("tabulate arm female, row"))
 
 baseline = table1(
@@ -92,12 +94,31 @@ The command layer intentionally supports a small, explicit subset instead of pre
 
 ```python
 stata.run("summarize age bmi, detail")
+stata.run("ci means age bmi, level(90)")
 stata.run("tabulate treatment sex")
 stata.run("tabulate treatment sex, row")
 stata.run("table1 age bmi sex, by(treatment) categorical(sex) missing pvalues smd")
 ```
 
 Aliases include `sum`, `tab`, and `baseline`.
+
+## Confidence intervals for means
+
+Use `ci_mean()` when an estimate and its uncertainty are more useful than a descriptive
+summary alone:
+
+```python
+from openstata import ci_mean
+
+intervals = ci_mean(data, ["systolic_bp", "ldl"], level=95)
+```
+
+The result contains the number of observations, mean, standard error, and lower and
+upper confidence limits for each variable. Intervals use Student's t distribution with
+`n - 1` degrees of freedom. Missing and non-finite values are excluded independently
+for each variable; standard errors and intervals are undefined when fewer than two
+observations remain. The confidence level is stored in
+`intervals.attrs["confidence_level"]`.
 
 ## Baseline Table 1
 
@@ -193,6 +214,7 @@ OpenStata uses pandas for `.dta` compatibility. Stata value labels are therefore
 
 ```bash
 openstata trial.dta "summarize age bmi, detail"
+openstata trial.dta "ci means age bmi, level(90)" --format json
 openstata trial.csv "table1 age bmi sex, by(arm) categorical(sex) pvalues smd" --format csv
 openstata trial.dta "table1 age bmi sex, by(arm) categorical(sex) pvalues smd" \
   --output table1.html --title "Table 1. Participant characteristics" --style clinical
@@ -214,7 +236,7 @@ Use `--subtitle`, repeatable `--footnote`, and `--overwrite` to customize export
 
 Near-term candidates include:
 
-- confidence intervals for summaries and proportions
+- confidence intervals for proportions
 - linear, logistic, and count regression with Stata-like result tables
 - Kaplan-Meier summaries and Cox proportional hazards models
 - stratified and paired analyses
