@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from openstata import table1
 
@@ -70,3 +71,8 @@ def test_table1_treats_nonfinite_numeric_values_as_missing() -> None:
     assert result.loc[("lab", "Mean (SD)"), "Overall"] == "2.0 (1.4)"
     assert result.loc[("lab", "Missing"), "Overall"] == "2 (50.0%)"
     assert result.loc[("lab", "Missing"), "arm=A"] == "1 (50.0%)"
+
+
+def test_table1_rejects_complex_data() -> None:
+    with pytest.raises(TypeError, match="real-valued"):
+        table1(pd.DataFrame({"signal": [1 + 2j, 3 + 4j]}), ["signal"])

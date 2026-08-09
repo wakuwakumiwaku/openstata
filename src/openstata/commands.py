@@ -45,6 +45,12 @@ def _reject_unknown(options: dict[str, str | None], allowed: set[str]) -> None:
         raise ValueError(f"Unknown options: {', '.join(sorted(unknown))}")
 
 
+def _reject_flag_values(options: dict[str, str | None], flags: set[str]) -> None:
+    invalid = sorted(name for name in flags if name in options and options[name] is not None)
+    if invalid:
+        raise ValueError(f"Options do not take values: {', '.join(invalid)}")
+
+
 class StataFrame:
     """Wrap a DataFrame with functions and a compact Stata-like command runner."""
 
@@ -149,6 +155,7 @@ class StataFrame:
             if subcommand in {"prop", "proportion", "proportions"}:
                 method_names = ("exact", "wald", "wilson", "agresti", "jeffreys")
                 _reject_unknown(options, {"level", *method_names})
+                _reject_flag_values(options, set(method_names))
                 methods = [method for method in method_names if method in options]
                 if len(methods) > 1:
                     raise ValueError("Choose only one proportion interval method")
@@ -164,10 +171,12 @@ class StataFrame:
 
         if name in {"summarize", "sum"}:
             _reject_unknown(options, {"detail"})
+            _reject_flag_values(options, {"detail"})
             return summarize(self.data, variables or None, detail="detail" in options)
 
         if name in {"tabulate", "tab"}:
             _reject_unknown(options, {"missing", "row", "column", "cell"})
+            _reject_flag_values(options, {"missing", "row", "column", "cell"})
             if len(variables) not in {1, 2}:
                 raise ValueError("tabulate requires one or two variables")
             modes = [mode for mode in ("row", "column", "cell") if mode in options]
@@ -184,6 +193,7 @@ class StataFrame:
         if name in {"table1", "baseline"}:
             allowed = {"by", "categorical", "nonnormal", "missing", "pvalues", "smd"}
             _reject_unknown(options, allowed)
+            _reject_flag_values(options, {"missing", "pvalues", "smd"})
             by = options.get("by")
             if by is not None:
                 by = by.strip()

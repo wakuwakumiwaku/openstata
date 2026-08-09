@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_bool_dtype, is_numeric_dtype
+from pandas.api.types import is_bool_dtype, is_complex_dtype, is_numeric_dtype
 from scipy import stats
 
 
@@ -169,6 +169,12 @@ def table1(
     nonnormal_set = set(nonnormal or [])
     required = chosen + ([by] if by is not None else [])
     _check_columns(data, required)
+    complex_columns = [column for column in required if is_complex_dtype(data[column])]
+    if complex_columns:
+        raise TypeError(
+            "table1 requires real-valued numeric or categorical columns: "
+            + ", ".join(complex_columns)
+        )
     undeclared = (categorical_set | nonnormal_set) - set(chosen)
     if undeclared:
         raise ValueError(f"Options reference unselected variables: {', '.join(sorted(undeclared))}")

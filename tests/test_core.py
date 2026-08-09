@@ -163,6 +163,14 @@ def test_ci_proportion_rejects_unknown_interval_method() -> None:
         )
 
 
+def test_numeric_analyses_reject_complex_data() -> None:
+    data = pd.DataFrame({"signal": [0 + 1j, 1 + 2j]})
+
+    for analysis in (summarize, ci_mean, ci_proportion):
+        with pytest.raises(TypeError, match="real-valued"):
+            analysis(data, ["signal"])
+
+
 def test_one_way_tabulate_reports_percent_and_cumulative_percent(
     patients: pd.DataFrame,
 ) -> None:

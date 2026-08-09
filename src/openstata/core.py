@@ -7,7 +7,7 @@ from typing import Literal, cast
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_bool_dtype, is_numeric_dtype
+from pandas.api.types import is_bool_dtype, is_complex_dtype, is_numeric_dtype
 from scipy import stats
 
 PercentMode = Literal["count", "row", "column", "cell"]
@@ -27,12 +27,22 @@ def _numeric_variables(
     data: pd.DataFrame, variables: Sequence[str] | None
 ) -> list[str]:
     if variables is None:
-        columns = list(data.select_dtypes(include="number").columns)
+        columns = [
+            column
+            for column in data.select_dtypes(include="number").columns
+            if not is_complex_dtype(data[column])
+        ]
     else:
         columns = _check_columns(data, variables)
-        nonnumeric = [column for column in columns if not is_numeric_dtype(data[column])]
+        nonnumeric = [
+            column
+            for column in columns
+            if not is_numeric_dtype(data[column]) or is_complex_dtype(data[column])
+        ]
         if nonnumeric:
-            raise TypeError(f"summarize requires numeric columns: {', '.join(nonnumeric)}")
+            raise TypeError(
+                "Analysis requires real-valued numeric columns: " + ", ".join(nonnumeric)
+            )
     if not columns:
         raise ValueError("No numeric variables were selected")
     return columns
@@ -49,7 +59,8 @@ def _confidence_level(level: float) -> float:
 
 
 def _finite_numeric(series: pd.Series) -> pd.Series:
-    return pd.to_numeric(series, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+    numeric = cast(pd.Series, pd.to_numeric(series, errors="coerce"))
+    return numeric.replace([np.inf, -np.inf], np.nan).dropna()
 
 
 def summarize(
@@ -181,7 +192,9 @@ def ci_proportion(
         columns = []
         for column in data.columns:
             series = data[column]
-            if not (is_numeric_dtype(series) or is_bool_dtype(series)):
+            if is_complex_dtype(series) or not (
+                is_numeric_dtype(series) or is_bool_dtype(series)
+            ):
                 continue
             observed = _finite_numeric(series)
             if not observed.empty and observed.isin([0, 1]).all():
@@ -193,11 +206,13 @@ def ci_proportion(
         nonnumeric = [
             column
             for column in columns
-            if not (is_numeric_dtype(data[column]) or is_bool_dtype(data[column]))
+            if is_complex_dtype(data[column])
+            or not (is_numeric_dtype(data[column]) or is_bool_dtype(data[column]))
         ]
         if nonnumeric:
             raise TypeError(
-                "ci_proportion requires numeric or Boolean columns: " + ", ".join(nonnumeric)
+                "ci_proportion requires real-valued numeric or Boolean columns: "
+                + ", ".join(nonnumeric)
             )
         nonbinary = [
             column

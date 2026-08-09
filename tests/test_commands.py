@@ -84,3 +84,18 @@ def test_run_rejects_unknown_commands_and_options(stata: OpenStata) -> None:
         stata.run("ci means age, level(ninety)")
     with pytest.raises(ValueError, match="only one"):
         stata.run("ci proportions female, exact wilson")
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "ci proportions female, wilson(90)",
+        "ci proportions female, exact(garbage)",
+        "summarize age, detail(extra)",
+        "tabulate arm female, row(yes)",
+        "table1 age, by(arm) pvalues(yes)",
+    ],
+)
+def test_run_rejects_values_attached_to_flag_options(stata: OpenStata, command: str) -> None:
+    with pytest.raises(ValueError, match="do not take values"):
+        stata.run(command)
