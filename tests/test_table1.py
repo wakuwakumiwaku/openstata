@@ -55,3 +55,18 @@ def test_table1_labels_variables() -> None:
     result = table1(patients, labels={"age": "Age, years"})
 
     assert ("Age, years", "Mean (SD)") in result.index
+
+
+def test_table1_treats_nonfinite_numeric_values_as_missing() -> None:
+    patients = pd.DataFrame(
+        {
+            "arm": ["A", "A", "B", "B"],
+            "lab": [1.0, np.inf, 3.0, np.nan],
+        }
+    )
+
+    result = table1(patients, ["lab"], by="arm")
+
+    assert result.loc[("lab", "Mean (SD)"), "Overall"] == "2.0 (1.4)"
+    assert result.loc[("lab", "Missing"), "Overall"] == "2 (50.0%)"
+    assert result.loc[("lab", "Missing"), "arm=A"] == "1 (50.0%)"

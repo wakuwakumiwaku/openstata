@@ -24,6 +24,9 @@ The same table can be exported as standalone HTML, formatted Excel, or editable 
 - Functional Python API, `OpenStata` wrapper, Stata-like command strings, and command-line interface
 - Automated tests on Python 3.10, 3.11, and 3.12
 
+Numeric summaries, confidence intervals, and continuous Table 1 statistics treat
+`NaN` and positive or negative infinity as missing values.
+
 ## Installation
 
 Clone the repository and install it in a virtual environment:

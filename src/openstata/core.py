@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -74,11 +74,12 @@ def summarize(
     records: list[dict[str, float | int | str]] = []
 
     for column in columns:
-        values = data[column].dropna()
+        series = cast(pd.Series, data[column])
+        values = _finite_numeric(series)
         record: dict[str, float | int | str] = {
             "Variable": column,
             "Obs": int(values.size),
-            "Missing": int(data[column].isna().sum()),
+            "Missing": int(len(series) - values.size),
             "Mean": float(values.mean()) if not values.empty else np.nan,
             "Std. dev.": float(values.std(ddof=1)) if values.size > 1 else np.nan,
             "Min": float(values.min()) if not values.empty else np.nan,

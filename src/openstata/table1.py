@@ -174,6 +174,9 @@ def table1(
         raise ValueError(f"Options reference unselected variables: {', '.join(sorted(undeclared))}")
 
     frame = data.copy()
+    for column in dict.fromkeys(required):
+        if is_numeric_dtype(frame[column]):
+            frame[column] = frame[column].replace([np.inf, -np.inf], np.nan)
     if by is not None:
         frame = frame.loc[frame[by].notna()].copy()
     if frame.empty:

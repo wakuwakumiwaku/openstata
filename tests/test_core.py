@@ -43,6 +43,18 @@ def test_summarize_rejects_nonnumeric_columns(patients: pd.DataFrame) -> None:
         summarize(patients, ["arm"])
 
 
+def test_summarize_treats_nonfinite_values_as_missing() -> None:
+    data = pd.DataFrame({"lab": [1.0, 3.0, np.nan, np.inf, -np.inf]})
+
+    result = summarize(data, ["lab"])
+
+    assert result.loc["lab", "Obs"] == 2
+    assert result.loc["lab", "Missing"] == 3
+    assert result.loc["lab", "Mean"] == pytest.approx(2.0)
+    assert result.loc["lab", "Min"] == pytest.approx(1.0)
+    assert result.loc["lab", "Max"] == pytest.approx(3.0)
+
+
 def test_ci_mean_uses_student_t_interval() -> None:
     data = pd.DataFrame({"age": [10.0, 12.0, 14.0, 16.0, 18.0]})
 
