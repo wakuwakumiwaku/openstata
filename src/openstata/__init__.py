@@ -1,5 +1,7 @@
 """OpenStata: Stata-inspired clinical statistics for Python."""
 
+from importlib.metadata import PackageNotFoundError, version
+
 from openstata.commands import OpenStata, StataFrame
 from openstata.core import ci_mean, ci_proportion, summarize, tabulate
 from openstata.export import export_table1
@@ -9,6 +11,7 @@ from openstata.table1 import table1
 __all__ = [
     "OpenStata",
     "StataFrame",
+    "__version__",
     "ci_mean",
     "ci_proportion",
     "export_table1",
@@ -19,4 +22,7 @@ __all__ = [
     "write_data",
 ]
 
-__version__ = "0.2.0"
+try:
+    __version__ = version("openstata")
+except PackageNotFoundError:
+    __version__ = "0+unknown"

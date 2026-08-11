@@ -236,6 +236,7 @@ OpenStata uses pandas for `.dta` compatibility. Stata value labels are therefore
 ## Command-line use
 
 ```bash
+openstata --version
 openstata trial.dta "summarize age bmi, detail"
 openstata trial.dta "ci means age bmi, level(90)" --format json
 openstata trial.dta "ci proportions female, wilson level(90)" --format json

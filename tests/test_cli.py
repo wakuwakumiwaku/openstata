@@ -1,10 +1,21 @@
 from __future__ import annotations
 
+from importlib.metadata import version as package_version
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from openstata.cli import main
+
+
+def test_cli_prints_version(capsys: object) -> None:
+    with pytest.raises(SystemExit) as exit_info:
+        main(["--version"])
+
+    assert exit_info.value.code == 0
+    captured = capsys.readouterr()  # type: ignore[attr-defined]
+    assert captured.out.strip() == f"openstata {package_version('openstata')}"
 
 
 def test_cli_prints_summary_table(tmp_path: Path, capsys: object) -> None:

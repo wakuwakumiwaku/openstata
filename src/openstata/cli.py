@@ -7,6 +7,7 @@ import json
 import shlex
 from collections.abc import Sequence
 
+from openstata import __version__
 from openstata.commands import OpenStata
 from openstata.export import export_table1
 from openstata.io import read_data
@@ -17,6 +18,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="openstata",
         description="Run Stata-style clinical statistics and export professional Table 1 files.",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("data", help="Input CSV, TSV, DTA, or Parquet dataset")
     parser.add_argument(
         "command",
