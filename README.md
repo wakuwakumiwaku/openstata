@@ -248,6 +248,7 @@ openstata trial.dta "baseline age bmi sex, by(arm) categorical(sex) pvalues smd"
 ```
 
 Use `--subtitle`, repeatable `--footnote`, and `--overwrite` to customize export.
+JSON output uses `null` for undefined estimates such as a one-observation standard error.
 
 ## Design principles
 

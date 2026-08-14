@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from importlib.metadata import version as package_version
 from pathlib import Path
 
@@ -39,6 +40,21 @@ def test_cli_supports_json_output(tmp_path: Path, capsys: object) -> None:
     assert exit_code == 0
     captured = capsys.readouterr()  # type: ignore[attr-defined]
     assert '"arm": "A"' in captured.out
+
+
+def test_cli_json_uses_null_for_undefined_statistics(tmp_path: Path, capsys: object) -> None:
+    source = tmp_path / "one_patient.csv"
+    pd.DataFrame({"age": [50]}).to_csv(source, index=False)
+
+    exit_code = main([str(source), "ci means age", "--format", "json"])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()  # type: ignore[attr-defined]
+    assert "NaN" not in captured.out
+    row = json.loads(captured.out)[0]
+    assert row["Std. err."] is None
+    assert row["CI lower"] is None
+    assert row["CI upper"] is None
 
 
 def test_cli_runs_ci_means_command(tmp_path: Path, capsys: object) -> None:

@@ -4,13 +4,26 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import shlex
 from collections.abc import Sequence
+from numbers import Real
 
 from openstata import __version__
 from openstata.commands import OpenStata
 from openstata.export import export_table1
 from openstata.io import read_data
+
+
+def _json_records(result) -> list[dict]:
+    records = result.reset_index().to_dict(orient="records")
+    return [
+        {
+            key: None if isinstance(value, Real) and not math.isfinite(value) else value
+            for key, value in row.items()
+        }
+        for row in records
+    ]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -86,7 +99,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.format == "csv":
         print(result.to_csv())
     elif args.format == "json":
-        print(json.dumps(result.reset_index().to_dict(orient="records"), default=str))
+        print(json.dumps(_json_records(result), default=str, allow_nan=False))
     else:
         print(result.to_string())
     return 0
