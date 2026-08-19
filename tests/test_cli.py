@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from openstata.cli import main
+from openstata.cli import _json_records, main
 
 
 def test_cli_prints_version(capsys: object) -> None:
@@ -55,6 +55,12 @@ def test_cli_json_uses_null_for_undefined_statistics(tmp_path: Path, capsys: obj
     assert row["Std. err."] is None
     assert row["CI lower"] is None
     assert row["CI upper"] is None
+
+
+def test_json_records_use_null_for_pandas_missing_scalars() -> None:
+    records = _json_records(pd.DataFrame({"value": [pd.NA, pd.NaT]}))
+
+    assert records == [{"index": 0, "value": None}, {"index": 1, "value": None}]
 
 
 def test_cli_runs_ci_means_command(tmp_path: Path, capsys: object) -> None:

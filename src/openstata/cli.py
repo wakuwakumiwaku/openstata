@@ -9,19 +9,26 @@ import shlex
 from collections.abc import Sequence
 from numbers import Real
 
+import pandas as pd
+
 from openstata import __version__
 from openstata.commands import OpenStata
 from openstata.export import export_table1
 from openstata.io import read_data
 
 
+def _json_value(value: object) -> object:
+    if value is pd.NA or value is pd.NaT:
+        return None
+    if isinstance(value, Real) and not math.isfinite(value):
+        return None
+    return value
+
+
 def _json_records(result) -> list[dict]:
     records = result.reset_index().to_dict(orient="records")
     return [
-        {
-            key: None if isinstance(value, Real) and not math.isfinite(value) else value
-            for key, value in row.items()
-        }
+        {key: _json_value(value) for key, value in row.items()}
         for row in records
     ]
 
