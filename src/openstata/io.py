@@ -41,6 +41,10 @@ def write_data(data: pd.DataFrame, path: str | Path, **kwargs: Any) -> None:
 
     destination = Path(path)
     suffix = _data_suffix(destination)
+    supported = _DELIMITED_SUFFIXES | {".dta", ".parquet", ".pq"}
+    if suffix not in supported:
+        raise ValueError(f"Unsupported output format: {suffix or '<none>'}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
     if suffix == ".csv":
         data.to_csv(destination, index=False, **kwargs)
         return
@@ -53,4 +57,3 @@ def write_data(data: pd.DataFrame, path: str | Path, **kwargs: Any) -> None:
     if suffix in {".parquet", ".pq"}:
         data.to_parquet(destination, index=False, **kwargs)
         return
-    raise ValueError(f"Unsupported output format: {suffix or '<none>'}")

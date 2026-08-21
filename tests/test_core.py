@@ -200,3 +200,10 @@ def test_missing_is_an_explicit_tabulation_level(patients: pd.DataFrame) -> None
     result = tabulate(patients, "crp", missing=True)
 
     assert result.loc["<missing>", "Freq."] == 1
+
+
+def test_missing_label_cannot_collide_with_observed_value() -> None:
+    data = pd.DataFrame({"arm": ["Control", "<missing>", None]})
+
+    with pytest.raises(ValueError, match="reserved"):
+        tabulate(data, "arm", missing=True)

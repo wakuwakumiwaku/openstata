@@ -18,6 +18,15 @@ def test_csv_round_trip(tmp_path: Path) -> None:
     pd.testing.assert_frame_equal(restored, source)
 
 
+def test_write_data_creates_missing_parent_directories(tmp_path: Path) -> None:
+    destination = tmp_path / "exports" / "nested" / "patients.csv"
+    source = pd.DataFrame({"patient_id": [1], "age": [61]})
+
+    write_data(source, destination)
+
+    pd.testing.assert_frame_equal(read_data(destination), source)
+
+
 @pytest.mark.parametrize("suffix", [".csv.gz", ".tsv.gz"])
 def test_compressed_delimited_round_trip(tmp_path: Path, suffix: str) -> None:
     destination = tmp_path / f"patients{suffix}"

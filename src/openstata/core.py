@@ -13,6 +13,7 @@ from scipy import stats
 PercentMode = Literal["count", "row", "column", "cell"]
 ProportionMethod = Literal["exact", "wald", "wilson", "agresti", "jeffreys"]
 _PROPORTION_METHODS = {"exact", "wald", "wilson", "agresti", "jeffreys"}
+_MISSING_LABEL = "<missing>"
 
 
 def _check_columns(data: pd.DataFrame, variables: Sequence[str]) -> list[str]:
@@ -306,8 +307,13 @@ def ci_proportion(
 
 def _with_missing(series: pd.Series, include_missing: bool) -> pd.Series:
     if include_missing:
-        return series.astype("object").where(series.notna(), "<missing>")
+        return series.astype("object").where(series.notna(), _MISSING_LABEL)
     return series.dropna()
+
+
+def _reject_missing_label_collision(series: pd.Series, name: str) -> None:
+    if any(isinstance(value, str) and value == _MISSING_LABEL for value in series.dropna()):
+        raise ValueError(f"{name} contains reserved missing label {_MISSING_LABEL!r}")
 
 
 def tabulate(
@@ -331,6 +337,8 @@ def tabulate(
         raise ValueError("percent must be one of: count, row, column, cell")
 
     if column is None:
+        if missing:
+            _reject_missing_label_collision(data[row], row)
         values = _with_missing(data[row], missing)
         counts = values.value_counts(sort=False, dropna=False)
         total = int(counts.sum())
@@ -347,9 +355,11 @@ def tabulate(
 
     subset = data[[row, column]].copy()
     if missing:
-        subset[row] = subset[row].astype("object").where(subset[row].notna(), "<missing>")
+        _reject_missing_label_collision(subset[row], row)
+        _reject_missing_label_collision(subset[column], column)
+        subset[row] = subset[row].astype("object").where(subset[row].notna(), _MISSING_LABEL)
         subset[column] = subset[column].astype("object").where(
-            subset[column].notna(), "<missing>"
+            subset[column].notna(), _MISSING_LABEL
         )
     else:
         subset = subset.dropna()
