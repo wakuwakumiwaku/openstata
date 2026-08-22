@@ -181,6 +181,13 @@ def test_one_way_tabulate_reports_percent_and_cumulative_percent(
     assert result.loc["Treatment", "Cum."] == pytest.approx(100.0)
 
 
+def test_one_way_tabulate_rejects_two_way_percentage_modes(
+    patients: pd.DataFrame,
+) -> None:
+    with pytest.raises(ValueError, match="column variable"):
+        tabulate(patients, "arm", percent="row")
+
+
 def test_two_way_tabulate_counts_and_totals(patients: pd.DataFrame) -> None:
     result = tabulate(patients, "arm", "female")
 

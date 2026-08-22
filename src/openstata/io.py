@@ -23,7 +23,7 @@ def _data_suffix(path: Path) -> str:
 def read_data(path: str | Path, **kwargs: Any) -> pd.DataFrame:
     """Read a clinical dataset from CSV, TSV, Stata, or Parquet."""
 
-    source = Path(path)
+    source = Path(path).expanduser()
     suffix = _data_suffix(source)
     if suffix == ".csv":
         return pd.read_csv(source, **kwargs)
@@ -39,7 +39,7 @@ def read_data(path: str | Path, **kwargs: Any) -> pd.DataFrame:
 def write_data(data: pd.DataFrame, path: str | Path, **kwargs: Any) -> None:
     """Write a dataset to CSV, TSV, Stata, or Parquet."""
 
-    destination = Path(path)
+    destination = Path(path).expanduser()
     suffix = _data_suffix(destination)
     supported = _DELIMITED_SUFFIXES | {".dta", ".parquet", ".pq"}
     if suffix not in supported:

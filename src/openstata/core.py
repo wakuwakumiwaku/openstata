@@ -335,6 +335,8 @@ def tabulate(
     _check_columns(data, names)
     if percent not in {"count", "row", "column", "cell"}:
         raise ValueError("percent must be one of: count, row, column, cell")
+    if column is None and percent != "count":
+        raise ValueError("row, column, and cell percentages require a column variable")
 
     if column is None:
         if missing:
