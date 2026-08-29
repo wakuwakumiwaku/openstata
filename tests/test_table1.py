@@ -58,6 +58,27 @@ def test_table1_labels_variables() -> None:
     assert ("Age, years", "Mean (SD)") in result.index
 
 
+@pytest.mark.parametrize(
+    ("pvalues", "standardized_differences", "option"),
+    [
+        (True, False, "pvalues"),
+        (False, True, "standardized_differences"),
+    ],
+)
+def test_table1_requires_groups_for_comparative_statistics(
+    pvalues: bool, standardized_differences: bool, option: str
+) -> None:
+    patients = pd.DataFrame({"age": [20, 30, 40]})
+
+    with pytest.raises(ValueError, match=rf"{option}.*by"):
+        table1(
+            patients,
+            ["age"],
+            pvalues=pvalues,
+            standardized_differences=standardized_differences,
+        )
+
+
 def test_table1_treats_nonfinite_numeric_values_as_missing() -> None:
     patients = pd.DataFrame(
         {

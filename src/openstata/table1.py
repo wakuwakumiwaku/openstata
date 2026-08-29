@@ -158,6 +158,10 @@ def table1(
 
     if digits < 0:
         raise ValueError("digits must be non-negative")
+    if pvalues and by is None:
+        raise ValueError("pvalues requires by")
+    if standardized_differences and by is None:
+        raise ValueError("standardized_differences requires by")
 
     chosen = list(variables) if variables is not None else list(data.columns)
     if by is not None and by in chosen:

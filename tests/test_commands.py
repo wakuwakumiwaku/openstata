@@ -73,6 +73,20 @@ def test_run_baseline_command(stata: OpenStata) -> None:
     assert "SMD" in result.columns
 
 
+@pytest.mark.parametrize(
+    ("command", "option"),
+    [
+        ("table1 age, pvalues", "pvalues"),
+        ("table1 age, smd", "standardized_differences"),
+    ],
+)
+def test_run_table1_requires_groups_for_comparative_statistics(
+    stata: OpenStata, command: str, option: str
+) -> None:
+    with pytest.raises(ValueError, match=rf"{option}.*by"):
+        stata.run(command)
+
+
 def test_run_rejects_unknown_commands_and_options(stata: OpenStata) -> None:
     with pytest.raises(ValueError, match="Unsupported"):
         stata.run("regress age female")
