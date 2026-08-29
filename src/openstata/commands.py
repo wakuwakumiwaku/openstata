@@ -29,7 +29,10 @@ def _parse_options(text: str) -> dict[str, str | None]:
         match = _OPTION_PATTERN.match(text, position)
         if match is None:
             raise ValueError(f"Could not parse option near: {text[position:]}")
-        options[match.group(1).lower()] = match.group(2)
+        name = match.group(1).lower()
+        if name in options:
+            raise ValueError(f"Duplicate option: {name}")
+        options[name] = match.group(2)
         position = match.end()
     return options
 

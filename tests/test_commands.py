@@ -87,6 +87,20 @@ def test_run_rejects_unknown_commands_and_options(stata: OpenStata) -> None:
 
 
 @pytest.mark.parametrize(
+    ("command", "option"),
+    [
+        ("summarize age, detail DETAIL", "detail"),
+        ("ci means age, level(90) LEVEL(95)", "level"),
+    ],
+)
+def test_run_rejects_duplicate_options(
+    stata: OpenStata, command: str, option: str
+) -> None:
+    with pytest.raises(ValueError, match=rf"Duplicate option: {option}"):
+        stata.run(command)
+
+
+@pytest.mark.parametrize(
     "command",
     [
         "ci proportions female, wilson(90)",
