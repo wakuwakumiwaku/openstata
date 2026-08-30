@@ -14,6 +14,7 @@ PercentMode = Literal["count", "row", "column", "cell"]
 ProportionMethod = Literal["exact", "wald", "wilson", "agresti", "jeffreys"]
 _PROPORTION_METHODS = {"exact", "wald", "wilson", "agresti", "jeffreys"}
 _MISSING_LABEL = "<missing>"
+_TOTAL_LABEL = "Total"
 
 
 def _check_columns(data: pd.DataFrame, variables: Sequence[str]) -> list[str]:
@@ -316,6 +317,17 @@ def _reject_missing_label_collision(series: pd.Series, name: str) -> None:
         raise ValueError(f"{name} contains reserved missing label {_MISSING_LABEL!r}")
 
 
+def _reject_total_label_collision(series: pd.Series, name: str) -> None:
+    observed_collision = any(
+        isinstance(value, str) and value == _TOTAL_LABEL for value in series.dropna()
+    )
+    category_collision = isinstance(series.dtype, pd.CategoricalDtype) and any(
+        isinstance(value, str) and value == _TOTAL_LABEL for value in series.cat.categories
+    )
+    if observed_collision or category_collision:
+        raise ValueError(f"{name} contains reserved total label {_TOTAL_LABEL!r}")
+
+
 def tabulate(
     data: pd.DataFrame,
     row: str,
@@ -359,12 +371,18 @@ def tabulate(
     if missing:
         _reject_missing_label_collision(subset[row], row)
         _reject_missing_label_collision(subset[column], column)
+        if percent == "count":
+            _reject_total_label_collision(cast(pd.Series, subset[row]), row)
+            _reject_total_label_collision(cast(pd.Series, subset[column]), column)
         subset[row] = subset[row].astype("object").where(subset[row].notna(), _MISSING_LABEL)
         subset[column] = subset[column].astype("object").where(
             subset[column].notna(), _MISSING_LABEL
         )
     else:
         subset = subset.dropna()
+        if percent == "count":
+            _reject_total_label_collision(cast(pd.Series, subset[row]), row)
+            _reject_total_label_collision(cast(pd.Series, subset[column]), column)
 
     counts = pd.crosstab(subset[row], subset[column], dropna=False)
     counts.index.name = row

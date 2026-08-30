@@ -214,3 +214,50 @@ def test_missing_label_cannot_collide_with_observed_value() -> None:
 
     with pytest.raises(ValueError, match="reserved"):
         tabulate(data, "arm", missing=True)
+
+
+@pytest.mark.parametrize(
+    ("arm", "outcome"),
+    [
+        (["Total", "Treatment"], ["Improved", "Improved"]),
+        (["Control", "Treatment"], ["Total", "Improved"]),
+    ],
+)
+def test_two_way_tabulate_rejects_total_label_collisions(
+    arm: list[str], outcome: list[str]
+) -> None:
+    data = pd.DataFrame({"arm": arm, "outcome": outcome})
+
+    with pytest.raises(ValueError, match="reserved total label"):
+        tabulate(data, "arm", "outcome")
+
+
+def test_two_way_percentages_allow_total_as_an_observed_value() -> None:
+    data = pd.DataFrame(
+        {"arm": ["Total", "Total", "Treatment"], "outcome": ["No", "Yes", "Yes"]}
+    )
+
+    result = tabulate(data, "arm", "outcome", percent="row")
+
+    assert result.loc["Total", "No"] == pytest.approx(50.0)
+    assert result.loc["Total", "Yes"] == pytest.approx(50.0)
+
+
+@pytest.mark.parametrize("missing", [False, True])
+@pytest.mark.parametrize("dimension", ["row", "column"])
+def test_two_way_tabulate_rejects_unobserved_total_categories(
+    dimension: str, missing: bool
+) -> None:
+    row: object = ["A"]
+    column: object = ["X"]
+    categories = pd.Categorical(
+        ["A" if dimension == "row" else "X"], categories=["A", "X", "Total"]
+    )
+    if dimension == "row":
+        row = categories
+    else:
+        column = categories
+    data = pd.DataFrame({"row": row, "column": column})
+
+    with pytest.raises(ValueError, match="reserved total label"):
+        tabulate(data, "row", "column", missing=missing)
