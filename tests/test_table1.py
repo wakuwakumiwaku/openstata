@@ -97,3 +97,10 @@ def test_table1_treats_nonfinite_numeric_values_as_missing() -> None:
 def test_table1_rejects_complex_data() -> None:
     with pytest.raises(TypeError, match="real-valued"):
         table1(pd.DataFrame({"signal": [1 + 2j, 3 + 4j]}), ["signal"])
+
+
+def test_table1_rejects_duplicate_variables() -> None:
+    patients = pd.DataFrame({"age": [20, 30, 40]})
+
+    with pytest.raises(ValueError, match="Duplicate variables: age"):
+        table1(patients, ["age", "age"])

@@ -164,6 +164,14 @@ def table1(
         raise ValueError("standardized_differences requires by")
 
     chosen = list(variables) if variables is not None else list(data.columns)
+    seen: set[str] = set()
+    duplicates: list[str] = []
+    for variable in chosen:
+        if variable in seen and variable not in duplicates:
+            duplicates.append(variable)
+        seen.add(variable)
+    if duplicates:
+        raise ValueError(f"Duplicate variables: {', '.join(duplicates)}")
     if by is not None and by in chosen:
         chosen.remove(by)
     if not chosen:
