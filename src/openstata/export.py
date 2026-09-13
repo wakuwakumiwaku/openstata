@@ -343,6 +343,7 @@ def _write_xlsx(
 ) -> None:
     try:
         from openpyxl import Workbook
+        from openpyxl.cell import Cell
         from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
         from openpyxl.utils import get_column_letter
     except ImportError as error:
@@ -358,9 +359,15 @@ def _write_xlsx(
     sheet.freeze_panes = "C5" if subtitle else "C4"
     sheet.sheet_properties.tabColor = colors["accent"]
 
+    def write_text(row: int, column: int, value: str) -> Cell:
+        cell = sheet.cell(row, column, value)
+        # Report text must stay literal, not become an Excel formula or error.
+        cell.data_type = "s"
+        return cell
+
     column_count = len(table.columns) + 2
     sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=column_count)
-    title_cell = sheet.cell(1, 1, title)
+    title_cell = write_text(1, 1, title)
     title_cell.font = Font(name="Aptos Display", size=18, bold=True, color=colors["dark"])
     title_cell.alignment = Alignment(vertical="center")
     sheet.row_dimensions[1].height = 29
@@ -368,7 +375,7 @@ def _write_xlsx(
     header_row = 3
     if subtitle:
         sheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=column_count)
-        subtitle_cell = sheet.cell(2, 1, subtitle)
+        subtitle_cell = write_text(2, 1, subtitle)
         subtitle_cell.font = Font(name="Aptos", size=10, italic=True, color=colors["muted"])
         header_row = 4
 
@@ -380,7 +387,7 @@ def _write_xlsx(
     thin = Side(style="thin", color=colors["border"])
     medium = Side(style="medium", color=colors["accent"])
     for column, value in enumerate(headers, start=1):
-        cell = sheet.cell(header_row, column, value)
+        cell = write_text(header_row, column, value)
         cell.fill = PatternFill("solid", fgColor=colors["dark"])
         cell.font = Font(name="Aptos", size=9, bold=True, color="FFFFFF")
         cell.alignment = Alignment(horizontal="left" if column <= 2 else "right")
@@ -395,10 +402,10 @@ def _write_xlsx(
         if position in group_by_start:
             group_number += 1
             _, variable = group_by_start[position]
-            sheet.cell(row, 1, variable)
-        sheet.cell(row, 2, _display(index[1]))
+            write_text(row, 1, variable)
+        write_text(row, 2, _display(index[1]))
         for offset, value in enumerate(values, start=3):
-            sheet.cell(row, offset, _display(value))
+            write_text(row, offset, _display(value))
         fill_color = colors["stripe"] if group_number % 2 == 0 else "FFFFFF"
         for column in range(1, column_count + 1):
             cell = sheet.cell(row, column)
@@ -426,8 +433,7 @@ def _write_xlsx(
                 end_row=last_row,
                 end_column=1,
             )
-            merged = sheet.cell(first_row, 1)
-            merged.value = variable
+            merged = write_text(first_row, 1, variable)
             merged.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
         for column in range(1, column_count + 1):
             sheet.cell(first_row, column).border = Border(top=medium, bottom=thin)
@@ -459,7 +465,7 @@ def _write_xlsx(
             end_row=notes_start,
             end_column=column_count,
         )
-        note_title = sheet.cell(notes_start, 1, "Notes")
+        note_title = write_text(notes_start, 1, "Notes")
         note_title.font = Font(name="Aptos", size=9, bold=True, color=colors["dark"])
         for offset, note in enumerate(footnotes, start=1):
             note_row = notes_start + offset
@@ -469,7 +475,7 @@ def _write_xlsx(
                 end_row=note_row,
                 end_column=column_count,
             )
-            cell = sheet.cell(note_row, 1, f"{offset}. {note}")
+            cell = write_text(note_row, 1, f"{offset}. {note}")
             cell.font = Font(name="Aptos", size=8, color=colors["muted"])
             cell.alignment = Alignment(wrap_text=True, vertical="top")
 

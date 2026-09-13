@@ -102,6 +102,69 @@ def test_excel_export_has_professional_workbook_features(
     assert sheet.oddFooter.center.text == "OpenStata"
 
 
+@pytest.mark.parametrize(
+    "text",
+    ["=1+1", "#NULL!", "#DIV/0!", "#VALUE!", "#REF!", "#NAME?", "#NUM!", "#N/A"],
+)
+@pytest.mark.parametrize("row_count", [1, 2], ids=["single-row", "merged-rows"])
+@pytest.mark.parametrize("data_only", [False, True], ids=["formulas", "cached-values"])
+def test_excel_export_preserves_literal_text(
+    tmp_path: Path, text: str, row_count: int, data_only: bool
+) -> None:
+    table = pd.DataFrame(
+        [[text, 12.5, None], [None, 0.0, None]][:row_count],
+        index=pd.MultiIndex.from_tuples([(text, text), (text, "Other")][:row_count]),
+        # Group headings drop the prefix before the first equals sign.
+        columns=[f"arm={text}", "Numeric", "Missing"],
+    )
+    destination = tmp_path / "literal-text.xlsx"
+
+    export_table1(table, destination, title=text, subtitle=text, footnotes=[text])
+
+    workbook = load_workbook(destination, data_only=data_only)
+    try:
+        sheet = workbook["Table 1"]
+        expected = {
+            "A1": text,
+            "A2": text,
+            "C4": text,
+            "A5": text,
+            "B5": text,
+            "C5": text,
+            "D5": "12.5",
+            f"A{row_count + 7}": f"1. {text}",
+        }
+        actual = {
+            address: (sheet[address].value, sheet[address].data_type) for address in expected
+        }
+        assert actual == {address: (value, "s") for address, value in expected.items()}
+        assert sheet["E5"].value is None
+        assert all(cell.data_type not in {"f", "e"} for row in sheet for cell in row)
+
+        merged_ranges = {str(cell_range) for cell_range in sheet.merged_cells.ranges}
+        assert "A1:E1" in merged_ranges
+        assert "A2:E2" in merged_ranges
+        assert sheet["A1"].font.bold is True
+        assert sheet["A2"].font.italic is True
+        assert sheet["C4"].font.bold is True
+        assert sheet["A5"].font.bold is True
+        assert sheet["C5"].alignment.horizontal == "right"
+        assert sheet.freeze_panes == "C5"
+        if row_count == 2:
+            assert "A5:A6" in merged_ranges
+            assert "C5:C6" in merged_ranges
+            assert sheet["A5"].alignment.vertical == "center"
+            assert sheet["C5"].alignment.vertical == "center"
+            assert sheet["A6"].value is None
+            assert sheet["C6"].value is None
+            assert sheet["D6"].value == "0.0"
+        else:
+            assert "A5:A6" not in merged_ranges
+            assert "C5:C6" not in merged_ranges
+    finally:
+        workbook.close()
+
+
 def test_word_export_is_editable_and_structured(
     baseline: pd.DataFrame, tmp_path: Path
 ) -> None:
