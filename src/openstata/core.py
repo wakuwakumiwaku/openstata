@@ -367,7 +367,7 @@ def tabulate(
         result.index.name = row
         return result
 
-    subset = data[[row, column]].copy()
+    subset = data[[row] if row == column else [row, column]].copy()
     if missing:
         _reject_missing_label_collision(subset[row], row)
         _reject_missing_label_collision(subset[column], column)

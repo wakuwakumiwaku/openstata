@@ -63,6 +63,14 @@ def test_run_tabulate_command(stata: OpenStata) -> None:
     assert result.loc["B", 1] == pytest.approx(100.0)
 
 
+def test_run_tabulate_with_same_variable(stata: OpenStata) -> None:
+    result = stata.run("tabulate arm arm")
+
+    assert result.loc["A", "A"] == 2
+    assert result.loc["A", "B"] == 0
+    assert result.loc["Total", "Total"] == 4
+
+
 def test_run_baseline_command(stata: OpenStata) -> None:
     result = stata.run(
         "table1 age female, by(arm) categorical(female) missing pvalues smd"

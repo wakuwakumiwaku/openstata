@@ -6,6 +6,7 @@ import pytest
 from scipy import stats
 
 from openstata import ci_mean, ci_proportion, summarize, tabulate
+from openstata.core import PercentMode
 
 
 @pytest.fixture
@@ -194,6 +195,40 @@ def test_two_way_tabulate_counts_and_totals(patients: pd.DataFrame) -> None:
     assert result.loc["Control", 1] == 2
     assert result.loc["Treatment", 0] == 1
     assert result.loc["Total", "Total"] == 6
+
+
+@pytest.mark.parametrize("missing", [False, True])
+def test_tabulate_variable_against_itself(missing: bool) -> None:
+    data = pd.DataFrame({"arm": ["A", "A", "B", None]})
+    before = data.copy(deep=True)
+
+    result = tabulate(data, "arm", "arm", missing=missing)
+
+    labels = ["A", "B", "Total"]
+    counts = [[2, 0, 2], [0, 1, 1], [2, 1, 3]]
+    if missing:
+        labels = ["<missing>", "A", "B", "Total"]
+        counts = [[1, 0, 0, 1], [0, 2, 0, 2], [0, 0, 1, 1], [1, 2, 1, 4]]
+    expected = pd.DataFrame(
+        counts, index=pd.Index(labels, name="arm"), columns=pd.Index(labels, name="arm")
+    )
+    pd.testing.assert_frame_equal(result, expected)
+    pd.testing.assert_frame_equal(data, before)
+
+
+@pytest.mark.parametrize("percent", ["row", "column", "cell"])
+def test_tabulate_variable_against_itself_percentages(percent: PercentMode) -> None:
+    data = pd.DataFrame({"arm": ["A", "A", "A", "B"]})
+
+    result = tabulate(data, "arm", "arm", percent=percent)
+
+    values = [[75.0, 0.0], [0.0, 25.0]] if percent == "cell" else [[100.0, 0.0], [0.0, 100.0]]
+    expected = pd.DataFrame(
+        values,
+        index=pd.Index(["A", "B"], name="arm"),
+        columns=pd.Index(["A", "B"], name="arm"),
+    )
+    pd.testing.assert_frame_equal(result, expected)
 
 
 def test_two_way_tabulate_row_percentages(patients: pd.DataFrame) -> None:
