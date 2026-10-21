@@ -177,6 +177,11 @@ The initial implementation uses:
 
 P-values and standardized differences are optional. Missingness is displayed explicitly when requested. Group rows with missing values in the grouping variable are excluded from the analysis population.
 
+Observed grouping levels must have distinct text representations. For example,
+integer `1` and string `"1"` in the same grouping variable would both be displayed
+as `arm=1`, so `table1()` raises `ValueError` rather than overwriting a group's
+results. Recode such levels to unambiguous labels before analysis.
+
 ## Professional export
 
 Export the DataFrame returned by `table1()`:

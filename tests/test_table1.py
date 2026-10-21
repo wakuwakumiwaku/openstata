@@ -104,3 +104,35 @@ def test_table1_rejects_duplicate_variables() -> None:
 
     with pytest.raises(ValueError, match="Duplicate variables: age"):
         table1(patients, ["age", "age"])
+
+
+@pytest.mark.parametrize("dtype", ["object", "category"])
+def test_table1_rejects_ambiguous_group_labels(dtype: str) -> None:
+    patients = pd.DataFrame(
+        {
+            "arm": pd.Series([1, 1, "1", "1", "1"], dtype=dtype),
+            "age": [20, 30, 60, 70, 80],
+        }
+    )
+    before = patients.copy(deep=True)
+
+    with pytest.raises(ValueError, match="Group labels must be unique.*arm=1"):
+        table1(patients, ["age"], by="arm")
+
+    pd.testing.assert_frame_equal(patients, before)
+
+
+def test_table1_ignores_unobserved_ambiguous_group_categories() -> None:
+    patients = pd.DataFrame(
+        {
+            "arm": pd.Categorical([1, 1, 2, 2], categories=[1, "1", 2]),
+            "age": [20, 30, 60, 80],
+        }
+    )
+
+    result = table1(patients, ["age"], by="arm")
+
+    assert list(result.columns) == ["Overall", "arm=1", "arm=2"]
+    assert result.loc[("age", "Mean (SD)"), "arm=1"] == "25.0 (7.1)"
+    assert result.loc[("age", "Mean (SD)"), "arm=2"] == "70.0 (14.1)"
+    assert result.attrs["openstata_group_sizes"] == {"Overall": 4, "arm=1": 2, "arm=2": 2}

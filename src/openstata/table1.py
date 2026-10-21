@@ -154,6 +154,7 @@ def table1(
     P-values use Welch's t test, one-way ANOVA, Mann-Whitney U, Kruskal-Wallis,
     chi-square, or Fisher's exact test as appropriate. Absolute standardized
     mean differences are reported only when ``by`` has exactly two groups.
+    Observed grouping levels must have distinct text representations.
     """
 
     if digits < 0:
@@ -202,9 +203,15 @@ def table1(
 
     group_frames: list[tuple[str, pd.DataFrame]] = [("Overall", frame)]
     if by is not None:
-        group_frames.extend(
-            (f"{by}={level}", frame.loc[frame[by] == level]) for level in _levels(frame[by])
-        )
+        group_names = {"Overall"}
+        for level in _levels(frame[by]):
+            group_name = f"{by}={level}"
+            if group_name in group_names:
+                raise ValueError(
+                    f"Group labels must be unique after conversion to text: {group_name!r}"
+                )
+            group_names.add(group_name)
+            group_frames.append((group_name, frame.loc[frame[by] == level]))
 
     label_map = dict(labels or {})
     rows: list[dict[str, str]] = []
