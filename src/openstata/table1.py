@@ -51,13 +51,15 @@ def _n_percent(count: int, denominator: int, digits: int) -> str:
 
 
 def _continuous_pvalue(frame: pd.DataFrame, variable: str, by: str, nonnormal: bool) -> float:
-    samples = [
-        pd.to_numeric(frame.loc[frame[by] == level, variable], errors="coerce")
-        .replace([np.inf, -np.inf], np.nan)
-        .dropna()
-        .to_numpy()
-        for level in _levels(frame[by])
-    ]
+    samples = []
+    for level in _levels(frame[by]):
+        values = (
+            pd.to_numeric(frame.loc[frame[by] == level, variable], errors="coerce")
+            .replace([np.inf, -np.inf], np.nan)
+            .dropna()
+        )
+        # Use concrete NumPy dtypes for nullable values without rounding integer ranks.
+        samples.append(values.to_numpy(dtype=getattr(values.dtype, "numpy_dtype", None)))
     samples = [sample for sample in samples if len(sample)]
     if len(samples) < 2:
         return np.nan
