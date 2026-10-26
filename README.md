@@ -27,6 +27,12 @@ The same table can be exported as standalone HTML, formatted Excel, or editable 
 Numeric summaries, confidence intervals, and continuous Table 1 statistics treat
 `NaN` and positive or negative infinity as missing values.
 
+Explicitly selected Boolean columns are summarized as 0/1 values, including
+interpolated percentiles with `summarize(data, ["flag"], detail=True)` or
+`summarize flag, detail`. Nullable Boolean missing values are excluded from the
+statistics and counted in `Missing`; the source column is not modified. Automatic
+numeric-column selection is unchanged, so select Boolean columns explicitly.
+
 ## Installation
 
 Clone the repository and install it in a virtual environment:

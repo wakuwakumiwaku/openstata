@@ -99,7 +99,11 @@ def summarize(
             "Max": float(values.max()) if not values.empty else np.nan,
         }
         if detail:
-            quantiles = values.quantile([0.01, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99])
+            # Boolean subtraction is undefined; interpolate their numeric 0/1 codes.
+            quantile_values = values.astype("int64") if is_bool_dtype(values) else values
+            quantiles = quantile_values.quantile(
+                [0.01, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99]
+            )
             for percentile, label in [
                 (0.01, "p1"),
                 (0.05, "p5"),
