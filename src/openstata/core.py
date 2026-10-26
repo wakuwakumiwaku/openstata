@@ -117,8 +117,11 @@ def summarize(
             ]:
                 record[label] = float(quantiles.loc[percentile]) if not values.empty else np.nan
             record["Variance"] = float(values.var(ddof=1)) if values.size > 1 else np.nan
-            record["Skewness"] = float(values.skew()) if values.size > 2 else np.nan
-            record["Kurtosis"] = float(values.kurt() + 3) if values.size > 3 else np.nan
+            skewness = values.skew() if values.size > 2 else np.nan
+            kurtosis = values.kurt() if values.size > 3 else np.nan
+            # Nullable reductions can return pd.NA, which cannot be cast to float.
+            record["Skewness"] = float(skewness) if pd.notna(skewness) else np.nan
+            record["Kurtosis"] = float(kurtosis + 3) if pd.notna(kurtosis) else np.nan
         records.append(record)
 
     return pd.DataFrame.from_records(records).set_index("Variable")

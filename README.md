@@ -33,6 +33,11 @@ interpolated percentiles with `summarize(data, ["flag"], detail=True)` or
 statistics and counted in `Missing`; the source column is not modified. Automatic
 numeric-column selection is unchanged, so select Boolean columns explicitly.
 
+If pandas returns a missing skewness or kurtosis result, detailed summaries keep
+that statistic missing (`NaN`, or `null` in JSON) instead of failing. This also
+handles nullable integer reductions without converting the original values to
+floats; it does not recompute or recover moments that pandas could not provide.
+
 ## Installation
 
 Clone the repository and install it in a virtual environment:
