@@ -154,6 +154,13 @@ excluded per variable. Calling `ci_proportion(data)` without a variable list sel
 binary numeric and Boolean columns automatically. The confidence level and method are
 stored in the result's `attrs` mapping.
 
+Agresti–Coull (`method="agresti"`) confidence limits are restricted to the
+probability range [0, 1], including when no events or all events are observed.
+This bounds the interval without changing the observed proportion or its
+standard error. The unadjusted Wald approximation (`method="wald"`) remains
+unbounded and can extend below 0 or above 1; use another method when such limits
+are unsuitable.
+
 ## Baseline Table 1
 
 ```python

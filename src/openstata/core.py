@@ -189,7 +189,8 @@ def ci_proportion(
     Variables must contain only 0 and 1 after missing and non-finite values are
     excluded. If ``variables`` is omitted, all binary numeric and Boolean columns
     are selected. ``method`` may be ``exact`` (Clopper-Pearson), ``wald``,
-    ``wilson``, ``agresti`` (Agresti-Coull), or ``jeffreys``.
+    ``wilson``, ``agresti`` (Agresti-Coull), or ``jeffreys``. Agresti-Coull
+    limits are bounded to [0, 1]; the Wald approximation remains unbounded.
     """
 
     confidence_level = _confidence_level(level)
@@ -288,8 +289,9 @@ def ci_proportion(
                 adjusted_n = observations + critical_value**2
                 adjusted_p = (successes + critical_value**2 / 2) / adjusted_n
                 margin = critical_value * np.sqrt(adjusted_p * (1 - adjusted_p) / adjusted_n)
-                lower = adjusted_p - margin
-                upper = adjusted_p + margin
+                # Intersect the adjusted-normal interval with the binomial parameter space.
+                lower = max(0.0, adjusted_p - margin)
+                upper = min(1.0, adjusted_p + margin)
             else:
                 lower = float(stats.beta.ppf(alpha / 2, successes + 0.5, failures + 0.5))
                 upper = float(
