@@ -95,7 +95,8 @@ def _continuous_smd(frame: pd.DataFrame, variable: str, by: str) -> float:
         return np.nan
     first = pd.to_numeric(frame.loc[frame[by] == levels[0], variable], errors="coerce").dropna()
     second = pd.to_numeric(frame.loc[frame[by] == levels[1], variable], errors="coerce").dropna()
-    if first.empty or second.empty:
+    # Sample variances (ddof=1) require two observed values in each group.
+    if len(first) < 2 or len(second) < 2:
         return np.nan
     denominator = np.sqrt((first.var(ddof=1) + second.var(ddof=1)) / 2)
     difference = abs(float(second.mean() - first.mean()))
