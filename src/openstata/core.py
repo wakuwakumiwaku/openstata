@@ -243,7 +243,8 @@ def ci_proportion(
     for column in columns:
         values = _finite_numeric(data[column])
         observations = int(values.size)
-        successes = int(values.sum()) if observations else 0
+        # Count events as integers; summing float32 codes can round large counts.
+        successes = int((values == 1).sum())
         proportion = successes / observations if observations else np.nan
         standard_error = (
             float(np.sqrt(proportion * (1 - proportion) / observations))

@@ -152,7 +152,9 @@ The default `exact` method is the Clopper-Pearson interval. `wald`, `wilson`,
 `agresti`, and `jeffreys` are also available. Missing and non-finite values are
 excluded per variable. Calling `ci_proportion(data)` without a variable list selects
 binary numeric and Boolean columns automatically. The confidence level and method are
-stored in the result's `attrs` mapping.
+stored in the result's `attrs` mapping. Events are counted as integers, regardless
+of the numeric or Boolean storage dtype, so large `float32` columns do not round
+the event count before calculating proportions and intervals.
 
 Agresti–Coull (`method="agresti"`) confidence limits are restricted to the
 probability range [0, 1], including when no events or all events are observed.
