@@ -197,11 +197,12 @@ class StataFrame:
             allowed = {"by", "categorical", "nonnormal", "missing", "pvalues", "smd"}
             _reject_unknown(options, allowed)
             _reject_flag_values(options, {"missing", "pvalues", "smd"})
-            by = options.get("by")
-            if by is not None:
-                by = by.strip()
-                if not by or len(shlex.split(by)) != 1:
+            by = None
+            if "by" in options:
+                by_names = shlex.split(options["by"] or "")
+                if len(by_names) != 1 or not by_names[0]:
                     raise ValueError("by() must contain exactly one grouping variable")
+                by = by_names[0]
             return table1(
                 self.data,
                 variables or None,
