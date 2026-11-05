@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import stat
+import tempfile
 from collections.abc import Sequence
 from html import escape
 from pathlib import Path
@@ -680,34 +683,38 @@ def export_table1(
     notes = _export_notes(table, footnotes)
     suffix = path.suffix.lower()
 
-    if suffix in {".html", ".htm"}:
-        _write_html(
-            table,
-            path,
-            title=title,
-            subtitle=subtitle,
-            footnotes=notes,
-            style=style,
-        )
-    elif suffix == ".xlsx":
-        _write_xlsx(
-            table,
-            path,
-            title=title,
-            subtitle=subtitle,
-            footnotes=notes,
-            style=style,
-        )
-    elif suffix == ".docx":
-        _write_docx(
-            table,
-            path,
-            title=title,
-            subtitle=subtitle,
-            footnotes=notes,
-            style=style,
-        )
-    else:
+    writers = {
+        ".html": _write_html,
+        ".htm": _write_html,
+        ".xlsx": _write_xlsx,
+        ".docx": _write_docx,
+    }
+    if suffix not in writers:
         raise ValueError("Unsupported export format. Use .html, .xlsx, or .docx")
 
-    return path.resolve()
+    # Keep a previous report (and destination symlink) intact until the writer closes.
+    destination_path = path.resolve()
+    try:
+        previous_mode = stat.S_IMODE(destination_path.stat().st_mode)
+    except FileNotFoundError:
+        previous_mode = None
+    else:
+        if not os.access(destination_path, os.W_OK):
+            raise PermissionError(f"Cannot write read-only output: {destination_path}")
+    with tempfile.TemporaryDirectory(
+        prefix=".openstata-export-", dir=destination_path.parent
+    ) as stage:
+        staged = Path(stage) / f"report{suffix}"
+        writers[suffix](
+            table,
+            staged,
+            title=title,
+            subtitle=subtitle,
+            footnotes=notes,
+            style=style,
+        )
+        if previous_mode is not None:
+            staged.chmod(previous_mode)
+        os.replace(staged, destination_path)
+
+    return destination_path
