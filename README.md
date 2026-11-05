@@ -325,8 +325,10 @@ variable headings in exported reports; source data are not modified.
 
 ### Low-precision numeric storage
 
-`summarize()` and `ci_mean()` widen float16 and float32 values (including nullable
-`Float32`) to float64 before statistical reductions. This avoids storage-dtype
-overflow in means, variances and confidence intervals for finite inputs.
-Source columns are unchanged; integer and higher-precision inputs are not
-converted. This does not prevent overflow beyond float64 arithmetic limits.
+`summarize()`, `ci_mean()`, and continuous `table1()` calculations widen float16
+and float32 values (including nullable `Float32`) to float64 before statistical
+reductions. This avoids storage-dtype overflow in means, variances, confidence
+intervals, Table 1 p-values and standardized mean differences for finite inputs.
+Source columns and Table 1 group/category labels are unchanged; integer ranks
+and higher-precision inputs are not converted. This does not prevent overflow
+beyond float64 arithmetic limits.

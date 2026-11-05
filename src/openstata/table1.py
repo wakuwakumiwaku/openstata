@@ -9,6 +9,8 @@ import pandas as pd
 from pandas.api.types import is_bool_dtype, is_complex_dtype, is_numeric_dtype
 from scipy import stats
 
+from openstata.core import _summary_values
+
 
 def _check_columns(data: pd.DataFrame, columns: Sequence[str]) -> None:
     missing = [column for column in columns if column not in data.columns]
@@ -29,7 +31,7 @@ def _number(value: float, digits: int) -> str:
 
 
 def _mean_sd(series: pd.Series, digits: int) -> str:
-    values = pd.to_numeric(series, errors="coerce").dropna()
+    values = _summary_values(series)
     if values.empty:
         return ""
     mean = _number(float(values.mean()), digits)
@@ -38,7 +40,7 @@ def _mean_sd(series: pd.Series, digits: int) -> str:
 
 
 def _median_iqr(series: pd.Series, digits: int) -> str:
-    values = pd.to_numeric(series, errors="coerce").dropna()
+    values = _summary_values(series)
     if values.empty:
         return ""
     q1, median, q3 = values.quantile([0.25, 0.50, 0.75]).tolist()
@@ -53,11 +55,7 @@ def _n_percent(count: int, denominator: int, digits: int) -> str:
 def _continuous_pvalue(frame: pd.DataFrame, variable: str, by: str, nonnormal: bool) -> float:
     samples = []
     for level in _levels(frame[by]):
-        values = (
-            pd.to_numeric(frame.loc[frame[by] == level, variable], errors="coerce")
-            .replace([np.inf, -np.inf], np.nan)
-            .dropna()
-        )
+        values = _summary_values(frame.loc[frame[by] == level, variable])
         # Use concrete NumPy dtypes for nullable values without rounding integer ranks.
         samples.append(values.to_numpy(dtype=getattr(values.dtype, "numpy_dtype", None)))
     samples = [sample for sample in samples if len(sample)]
@@ -93,8 +91,8 @@ def _continuous_smd(frame: pd.DataFrame, variable: str, by: str) -> float:
     levels = _levels(frame[by])
     if len(levels) != 2:
         return np.nan
-    first = pd.to_numeric(frame.loc[frame[by] == levels[0], variable], errors="coerce").dropna()
-    second = pd.to_numeric(frame.loc[frame[by] == levels[1], variable], errors="coerce").dropna()
+    first = _summary_values(frame.loc[frame[by] == levels[0], variable])
+    second = _summary_values(frame.loc[frame[by] == levels[1], variable])
     # Sample variances (ddof=1) require two observed values in each group.
     if len(first) < 2 or len(second) < 2:
         return np.nan
