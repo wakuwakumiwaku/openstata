@@ -322,3 +322,11 @@ identical text representations. A literal `Missing` category is also rejected
 when an actual missing-value row would use that label. With `include_missing=False`,
 that category remains valid. These checks prevent duplicate row keys and merged
 variable headings in exported reports; source data are not modified.
+
+### Low-precision numeric storage
+
+`summarize()` and `ci_mean()` widen float16 and float32 values (including nullable
+`Float32`) to float64 before statistical reductions. This avoids storage-dtype
+overflow in means, variances and confidence intervals for finite inputs.
+Source columns are unchanged; integer and higher-precision inputs are not
+converted. This does not prevent overflow beyond float64 arithmetic limits.

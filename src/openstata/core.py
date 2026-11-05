@@ -65,6 +65,14 @@ def _finite_numeric(series: pd.Series) -> pd.Series:
     return numeric.replace([np.inf, -np.inf], np.nan).dropna()
 
 
+def _summary_values(series: pd.Series) -> pd.Series:
+    values = _finite_numeric(series)
+    # Accumulate low-precision storage in float64; leave exact integer codes intact.
+    if values.dtype in ("float16", "float32", "Float32"):
+        values = values.astype("float64")
+    return values
+
+
 def summarize(
     data: pd.DataFrame,
     variables: Sequence[str] | None = None,
@@ -88,7 +96,7 @@ def summarize(
 
     for column in columns:
         series = cast(pd.Series, data[column])
-        values = _finite_numeric(series)
+        values = _summary_values(series)
         record: dict[str, float | int | str] = {
             "Variable": column,
             "Obs": int(values.size),
@@ -147,7 +155,7 @@ def ci_mean(
     probability = 0.5 + confidence_level / 200
 
     for column in columns:
-        values = _finite_numeric(data[column])
+        values = _summary_values(data[column])
         observations = int(values.size)
         mean = float(values.mean()) if observations else np.nan
         standard_error = np.nan
