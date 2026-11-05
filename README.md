@@ -314,3 +314,11 @@ OpenStata is research software. It does not provide medical advice and must not 
 Released under the MIT License.
 
 OpenStata is an independent open-source project. It is not affiliated with or endorsed by StataCorp LLC. Stata is a registered trademark of StataCorp LLC.
+
+### Unambiguous Table 1 row labels
+
+`table1()` rejects duplicate variable display labels and categorical levels with
+identical text representations. A literal `Missing` category is also rejected
+when an actual missing-value row would use that label. With `include_missing=False`,
+that category remains valid. These checks prevent duplicate row keys and merged
+variable headings in exported reports; source data are not modified.

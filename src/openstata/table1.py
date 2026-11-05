@@ -217,6 +217,9 @@ def table1(
             group_frames.append((group_name, frame.loc[frame[by] == level]))
 
     label_map = dict(labels or {})
+    display_names = [str(label_map.get(variable, variable)) for variable in chosen]
+    if len(set(display_names)) != len(display_names):
+        raise ValueError("Variable labels must be unique after conversion to text")
     rows: list[dict[str, str]] = []
     index: list[tuple[str, str]] = []
 
@@ -233,6 +236,13 @@ def table1(
 
         if is_categorical:
             levels = _levels(series)
+            level_names = [str(level) for level in levels]
+            if include_missing and series.isna().any():
+                level_names.append("Missing")
+            if len(set(level_names)) != len(level_names):
+                raise ValueError(
+                    f"Level labels for {variable!r} must be unique after conversion to text"
+                )
             for level in levels:
                 row = {
                     group_name: _n_percent(
